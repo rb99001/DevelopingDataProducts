@@ -1,0 +1,93 @@
+---
+title: "Homework 2"
+author: "Ahmed Bilal"
+output: html_document
+date: "2023-09-15"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Link to the folder : https://drive.google.com/drive/folders/19NYD7TUHk-UUZvziyrHT2pXQgxkTPB9n?usp=sharing
+
+The data file we are going to use for this Homework is **pcos_values.txt**.The table comprises of gene expression data for PCOS (Polycystic Ovary Syndrome) in adipose tissue. The data has 16 columns, the first being the gene name, followed by the different experiments, 7 controls and 8 treatments. You are also provided with another file called **pcos_condition.txt** which has the details of condition for each column in the data.
+
+## Loading the data:
+Load the file **pcos_values.txt** into R and call it **pcos_values**. It's a good idea to load the values such that gene names are the rownames of the dataframe.
+```{r}
+pcos_values <- read.delim("pcos_values.txt", row.names = 1)
+pcos_values
+```
+
+Load the file **pcos_condition.txt** into R and call it **pcos_condition**.
+```{r}
+pcos_condition <- read.delim("pcos_condition.txt", row.names = 1)
+pcos_condition
+```
+
+## Fold change calculation:
+1. Create a factor, called expgroups, that represents this structure,"control" and "treatment" group based off of **pcos_condition**. *Hint* use you can use rep() function for the repeat
+```{r}
+expgroups <- factor(rep(c("treatment", "control"), times = c(8, 7)))
+expgroups
+
+```
+
+2. Calculate the average treatment and control for *each gene*. Save the results in a matrix called **expmeans**. 
+```{r}
+expmeans <- t(apply(pcos_values, 1, function(x) tapply(x, INDEX = expgroups, FUN = mean)))
+expmeans
+
+```
+
+3. LFC ( log fold change ) is often calculated to see how much the expression of a gene has changed. We often take the ratio of the treatment over control and take the log to make the value symmetrical. However the values we have started with **are already in log scale**, so instead of taking the log of the ratio we can simply **subtract the logs**. Basically:
+                                    
+                                    log(treatment/control)=log(treatment)−log(control)
+
+To Calculate the LFC we will simply subtract the average control values from the average treatment values. Call this variable **LFC**.
+```{r}
+LFC <- expmeans[, "treatment"] - expmeans[, "control"]
+head(LFC)
+```
+
+
+4. How many genes have a LFC > 1 OR < -1 ?
+```{r}
+num_genes <- sum(LFC > 1) + sum(LFC < -1)
+num_genes
+```
+
+5. Identify the gene (give the **name** of the gene) that has the **highest LFC** and save it as **bigGene**. Identify the gene (give the **name** of the gene) that has the **lowest LFC** and save it as **smallGene**
+
+```{r}
+bigGene <- row.names(expmeans)[which.max(LFC)]
+smallGene <- row.names(expmeans)[which.min(LFC)]
+bigGene
+smallGene
+```
+
+6. Obtain the original expression values of bigGene and smallGene from **pcos_values** and plot them together in a barplot. Save the barplot as "barplot.pdf"
+
+```{r}
+bigGene_values <- pcos_values[which(rownames(pcos_values) == bigGene), ]
+smallGene_values <- pcos_values[which(rownames(pcos_values) == smallGene), ]
+
+plot_data <- data.frame(
+  Gene = c("bigGene", "smallGene"),
+  Expression = c(bigGene_values, smallGene_values)
+)
+barplot(plot_data$Expression, names.arg = plot_data$Gene,
+        xlab = "Gene", ylab = "Expression",
+        main = "Expression Values of bigGene and smallGene",
+        col = c("blue", "red"))
+
+pdf("barplot.pdf")
+barplot(plot_data$Expression, names.arg = plot_data$Gene,
+        xlab = "Gene", ylab = "Expression",
+        main = "Expression Values of bigGene and smallGene",
+        col = c("blue", "red"))
+dev.off()
+```
+
+```
+
